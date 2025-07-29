@@ -115,8 +115,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Function to create MediaDelivery embed iframe
         function createVideoEmbed(embedUrl, movieTitle) {
-          const videoPlayer = document.getElementById('moviePlayer');
-          const videoWrapper = videoPlayer.parentElement;
+          const videoWrapper = document.querySelector('.video-player');
+          
+          if (!videoWrapper) {
+            console.error('❌ Video wrapper not found');
+            return;
+          }
           
           // Replace video element with iframe
           videoWrapper.innerHTML = `
