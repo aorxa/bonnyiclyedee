@@ -422,6 +422,7 @@ async function ensureCategoriesLoaded() {
       const playButton = featuredMovie.querySelector('.btn-primary');
       if (playButton) {
         playButton.href = `player.html?id=${currentFeaturedMovieIndex}`;
+        console.log('🎬 Featured movie play button link:', playButton.href);
       }
 
       // Update watchlist button - find the second button (not the play button)

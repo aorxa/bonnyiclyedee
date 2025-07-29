@@ -1,6 +1,57 @@
 document.addEventListener('DOMContentLoaded', () => {
       console.log('=== PLAYER.JS STARTING ===');
 
+      // Load movies first, then initialize player
+      async function loadMoviesAndInitializePlayer() {
+        console.log('Loading movies for player...');
+        
+        // Load movies from database if not already loaded
+        if (!window.movies || window.movies.length === 0) {
+          try {
+            console.log('🎬 Loading movies from database...');
+            const response = await fetch('movies_api.php');
+            
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success && data.movies) {
+              window.movies = data.movies;
+              console.log(`✅ Loaded ${data.movies.length} movies from database`);
+            } else {
+              throw new Error(data.error || 'Failed to load movies');
+            }
+          } catch (error) {
+            console.error('❌ Error loading movies from database:', error);
+            // Show error message to user
+            const videoWrapper = document.querySelector('.video-player');
+            if (videoWrapper) {
+              videoWrapper.innerHTML = `
+                <div class="video-unavailable" style="text-align: center; padding: 60px 20px; color: #fff; background: #1a1a1a; border-radius: 10px;">
+                  <div style="margin-bottom: 20px;">
+                    <i data-lucide="wifi-off" style="width: 64px; height: 64px; color: #ff6b6b; margin-bottom: 20px;"></i>
+                  </div>
+                  <h3 style="margin-bottom: 15px; color: #ff6b6b;">Błąd ładowania filmów</h3>
+                  <p style="margin-bottom: 10px; color: #ccc;">Nie udało się załadować danych filmów z bazy danych</p>
+                  <p style="color: #888; font-size: 14px;">Błąd: ${error.message}</p>
+                  <button onclick="window.location.reload()" class="btn btn-primary" style="margin-top: 1rem;">
+                    <i data-lucide="refresh-cw"></i>
+                    <span>Spróbuj ponownie</span>
+                  </button>
+                </div>
+              `;
+              lucide.createIcons();
+            }
+            return;
+          }
+        }
+        
+        // Now initialize the player
+        initializePlayer();
+      }
+
       // Initialize video player with MediaDelivery embed
       function initializePlayer() {
         console.log('Starting MediaDelivery embed player initialization...');
@@ -104,12 +155,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const movieId = urlParams.get('id');
         console.log('🎬 Movie ID from URL:', movieId);
 
+        if (!movieId) {
+          console.log('❌ No movie ID provided in URL');
+          const videoWrapper = document.querySelector('.video-player');
+          videoWrapper.innerHTML = `
+            <div class="video-unavailable" style="text-align: center; padding: 60px 20px; color: #fff; background: #1a1a1a; border-radius: 10px;">
+              <div style="margin-bottom: 20px;">
+                <i data-lucide="alert-circle" style="width: 64px; height: 64px; color: #ff6b6b; margin-bottom: 20px;"></i>
+              </div>
+              <h3 style="margin-bottom: 15px; color: #ff6b6b;">Brak ID filmu</h3>
+              <p style="margin-bottom: 20px; color: #ccc;">Nie podano ID filmu w adresie URL</p>
+              <a href="Filmy.html" class="btn btn-primary">
+                <i data-lucide="arrow-left"></i>
+                <span>Powrót do filmów</span>
+              </a>
+            </div>
+          `;
+          lucide.createIcons();
+          return;
+        }
+
         // Make sure we have access to movies array
         const moviesArray = window.movies || [];
-        console.log('🎬 Available movies:', moviesArray);
+        console.log('🎬 Available movies count:', moviesArray.length);
+        console.log('🎬 Looking for movie with ID:', movieId);
 
         // Find movie in our movies array
-        const movie = moviesArray[movieId];
+        const movie = moviesArray[parseInt(movieId)];
         console.log('🎬 Movie details:', movie);
 
         if (movie) {
@@ -342,13 +414,27 @@ document.addEventListener('DOMContentLoaded', () => {
           });
         } else {
           // Show error message if movie not found
-          console.log('❌ Movie not found');
+          console.log('❌ Movie not found for ID:', movieId);
+          console.log('Available movie IDs:', moviesArray.map((m, index) => index));
           const videoWrapper = document.querySelector('.video-player');
           videoWrapper.innerHTML = `
-                <div class="video-unavailable">
-                    <p>Film nie został znaleziony</p>
-                    <p>ID filmu: ${movieId}</p>
-                    <a href="index.html" class="btn btn-primary">Powrót do strony głównej</a>
+                <div class="video-unavailable" style="text-align: center; padding: 60px 20px; color: #fff; background: #1a1a1a; border-radius: 10px;">
+                    <div style="margin-bottom: 20px;">
+                      <i data-lucide="search-x" style="width: 64px; height: 64px; color: #ff6b6b; margin-bottom: 20px;"></i>
+                    </div>
+                    <h3 style="margin-bottom: 15px; color: #ff6b6b;">Film nie został znaleziony</h3>
+                    <p style="margin-bottom: 10px; color: #ccc;">Nie znaleziono filmu o ID: <strong>${movieId}</strong></p>
+                    <p style="margin-bottom: 20px; color: #888; font-size: 14px;">Dostępne filmy: ${moviesArray.length}</p>
+                    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                      <a href="Filmy.html" class="btn btn-primary">
+                        <i data-lucide="film"></i>
+                        <span>Zobacz wszystkie filmy</span>
+                      </a>
+                      <a href="index.html" class="btn btn-secondary">
+                        <i data-lucide="home"></i>
+                        <span>Strona główna</span>
+                      </a>
+                    </div>
                 </div>
             `;
         }
@@ -361,6 +447,6 @@ document.addEventListener('DOMContentLoaded', () => {
         );
       }
 
-      // Start the initialization
-      initializePlayer();
+      // Start the initialization by loading movies first
+      loadMoviesAndInitializePlayer();
     });
